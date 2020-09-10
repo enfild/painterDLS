@@ -9,8 +9,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     pathToJson = getPath();
 
-    QPicture pi;
-    QPainter p(&pi);
+    QGraphicsScene *scene = new QGraphicsScene(ui->graphicsView);
+    QPen pen(Qt::black);
+    scene->addLine(0,90,180,90,pen);//x
+    scene->addLine(90,0,90,180,pen);//y
 
 
     if(pathToJson.isEmpty())
@@ -38,8 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
 
         qDebug() << "DAI" << depth << azimuth << inclination;
 
-        p.setPen(QPen(Qt::black, 12, Qt::DashDotLine, Qt::RoundCap));
-        p.drawLine(0, 0, 200, 200);
+
     }
 
 }
