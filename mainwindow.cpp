@@ -1,20 +1,27 @@
 #include "mainwindow.h"
-#include "./ui_mainwindow.h"
+#include "ui_mainwindow.h"
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    ui->spinBox->setRange(-180, 360);
+    ui->spinBox->setValue(0);
+}
 
-    pathToJson = getPath();
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
 
-    QGraphicsScene *scene = new QGraphicsScene(ui->graphicsView);
-    QPen pen(Qt::black);
-    scene->addLine(0,90,180,90,pen);//x
-    scene->addLine(90,0,90,180,pen);//y
+QString MainWindow::getPath(){
+    return QFileDialog::getOpenFileName(this,tr("Open Json File"),QString(),tr("JSON (*.json)"));
+}
 
+void MainWindow::calculateDLS(QString pathToJson){
 
+    QChart *chart = new QChart();
     if(pathToJson.isEmpty())
         return;
     QFile jsonFile(pathToJson);
@@ -27,29 +34,56 @@ MainWindow::MainWindow(QWidget *parent)
     jsonFile.close();
     QJsonDocument doc(QJsonDocument::fromJson(saveData));
     QJsonArray jsonArray(doc.array());
+    QVector<double> depth (jsonArray.size()), azimuth(jsonArray.size()), inclination(jsonArray.size()), DLS(jsonArray.size()), rotatedDLS(jsonArray.size());
 
-    QVector<double> x(jsonArray.size()) , y(jsonArray.size());
+    QLineSeries *series = new QLineSeries();
+    QLineSeries *series2 = new QLineSeries();
 
-    for(int i =0; i < jsonArray.size(); i++)
+    for(int i = 1; i < jsonArray.size(); i++)
     {
         QJsonObject jsonObj = jsonArray.at(i).toObject();
 
-        double depth = jsonObj.find("depth").value().toDouble();
-        double azimuth = jsonObj.find("azimuth").value().toDouble();
-        double inclination = jsonObj.find("inclination").value().toDouble();
+        depth[i] = jsonObj.find("depth").value().toDouble();
+        azimuth[i] = jsonObj.find("azimuth").value().toDouble();
+        inclination[i] = jsonObj.find("inclination").value().toDouble();
+        qDebug() << "DAI" << depth[i] << azimuth[i] << inclination[i];
+        DLS[i] = (1 / cos((cos(inclination[i - 1]) * cos(inclination[i])) + (sin(inclination[i - 1]) * sin(inclination[i])) * cos(azimuth[i] + (-azimuth[i - 1])))) * (100 / (depth[i] - depth[i - 1]));
+        rotatedDLS[i] = (1 / cos((cos(inclination[i - 1]) * cos(inclination[i])) + (sin(inclination[i - 1]) * sin(inclination[i])) * cos(azimuth[i] + cos(ui->spinBox->value()) + (-azimuth[i - 1] + cos(ui->spinBox->value()) ) ))) * (100 / (depth[i] - depth[i - 1]));
 
-        qDebug() << "DAI" << depth << azimuth << inclination;
+        qDebug() << DLS[i] << "--- DLS";
 
-
+        series->append(DLS[i], ( -depth[i]));
+        series2->append(rotatedDLS[i], ( -depth[i]));
     }
 
+    series->setName("Trajectory");
+    series2->setName("rotated Trajectory");
+
+    chart->addSeries(series);
+    chart->addSeries(series2);
+
+    chart->legend()->setAlignment(Qt::AlignBottom);
+
+    chart->setTitle("DLS DEMO");
+
+    QValueAxis *axisX = new QValueAxis;
+    axisX->setTitleText("DLS");
+    chart->addAxis(axisX, Qt::AlignBottom);
+    series->attachAxis(axisX);
+
+    QValueAxis *axisY = new QValueAxis;
+    axisY->setLabelFormat("%i");
+    axisY->setTitleText("Depth");
+    chart->addAxis(axisY, Qt::AlignLeft);
+    series->attachAxis(axisY);
+
+    QChartView *chartView = new QChartView(chart);
+    chartView->setRenderHint(QPainter::Antialiasing);
+    chartView->show();
 }
 
-MainWindow::~MainWindow()
+void MainWindow::on_pushButton_clicked()
 {
-    delete ui;
-}
-
-QString MainWindow::getPath(){
-    return QFileDialog::getOpenFileName(this,tr("Open Json File"),QString(),tr("JSON (*.json)"));
+    pathToJson = getPath();
+    calculateDLS(pathToJson);
 }

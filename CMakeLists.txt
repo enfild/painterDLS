@@ -24,22 +24,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #    endif()
 #endif()
 
-find_package(Qt5 COMPONENTS Widgets printsupport REQUIRED)
+find_package(Qt5 COMPONENTS Widgets Charts REQUIRED)
 
-if(ANDROID)
-  add_library(hometask SHARED
-    main.cpp
-    mainwindow.cpp
-    mainwindow.h
-    mainwindow.ui
-  )
-else()
   add_executable(hometask
     main.cpp
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
   )
-endif()
 
-target_link_libraries(hometask PRIVATE Qt5::Widgets)
+target_link_libraries(hometask PRIVATE Qt5::Widgets Qt5::Charts)

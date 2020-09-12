@@ -1,33 +1,34 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-#include <QFileDialog>
+
 #include <QMainWindow>
-#include <QDebug>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonArray>
-#include <QString>
-#include <QPainter>
-#include <QPicture>
-QT_BEGIN_NAMESPACE
+#include <QSpinBox>
+#include <QtCharts/QtCharts>
+QT_CHARTS_USE_NAMESPACE
+
 namespace Ui {
 class MainWindow;
 }
-QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private:
-    QString getPath();
+private slots:
+    void on_pushButton_clicked();
 
+private:
     Ui::MainWindow *ui;
+
+    void calculateDLS(QString pathToJson);
+
+    QString getPath();
 
     QString pathToJson;
 };
+
 #endif // MAINWINDOW_H
