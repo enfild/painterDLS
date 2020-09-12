@@ -46,11 +46,16 @@ void MainWindow::calculateDLS(QString pathToJson){
         depth[i] = jsonObj.find("depth").value().toDouble();
         azimuth[i] = jsonObj.find("azimuth").value().toDouble();
         inclination[i] = jsonObj.find("inclination").value().toDouble();
-        qDebug() << "DAI" << depth[i] << azimuth[i] << inclination[i];
+        // Ищем угол
         DLS[i] = (1 / cos((cos(inclination[i - 1]) * cos(inclination[i])) + (sin(inclination[i - 1]) * sin(inclination[i])) * cos(azimuth[i] + (-azimuth[i - 1])))) * (100 / (depth[i] - depth[i - 1]));
-        rotatedDLS[i] = (1 / cos((cos(inclination[i - 1]) * cos(inclination[i])) + (sin(inclination[i - 1]) * sin(inclination[i])) * cos(azimuth[i] + cos(ui->spinBox->value()) + (-azimuth[i - 1] + cos(ui->spinBox->value()) ) ))) * (100 / (depth[i] - depth[i - 1]));
-
-        qDebug() << DLS[i] << "--- DLS";
+        //методом прямоугольного треугольника ищем смещение по горизонтали
+        auto b = tan(DLS[i]) * (depth[i] - depth[i - 1]);
+        DLS[i] = DLS[i - 1] + b;
+        // ищем смещенный угол
+        rotatedDLS[i] = (1 / cos((cos(inclination[i - 1]) * cos(inclination[i])) + (sin(inclination[i - 1]) * sin(inclination[i])) * cos(azimuth[i] + sin(ui->spinBox->value()) + (-azimuth[i - 1] + sin(ui->spinBox->value()) ) ))) * (100 / (depth[i] - depth[i - 1]));
+        //методом прямоугольного треугольника ищем смещение по горизонтали
+        auto c = tan(rotatedDLS[i]) * (depth[i] - depth[i - 1]);
+        rotatedDLS[i] = rotatedDLS[i - 1] + c;
 
         series->append(DLS[i], ( -depth[i]));
         series2->append(rotatedDLS[i], ( -depth[i]));
@@ -64,10 +69,10 @@ void MainWindow::calculateDLS(QString pathToJson){
 
     chart->legend()->setAlignment(Qt::AlignBottom);
 
-    chart->setTitle("DLS DEMO");
+    chart->setTitle("Trajectory DEMO");
 
     QValueAxis *axisX = new QValueAxis;
-    axisX->setTitleText("DLS");
+    axisX->setTitleText("Metrs");
     chart->addAxis(axisX, Qt::AlignBottom);
     series->attachAxis(axisX);
 
